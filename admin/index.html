@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANHATTAN Admin</title>
+  <link rel="stylesheet" href="../assets/admin.css" />
+  <script src="../assets/data.js"></script>
+</head>
+<body>
+  <div id="login" class="login">
+    <h2>Admin Access</h2>
+    <p>Enter the password to edit MANHATTAN.</p>
+    <input type="password" id="password" placeholder="Password" aria-label="Password" />
+    <div style="margin-top:14px; display:flex; gap:10px;">
+      <button id="login-btn">Login</button>
+      <button class="secondary" onclick="window.location.href='/'">Back</button>
+    </div>
+  </div>
+
+  <div id="dashboard" class="dashboard" style="display:none;">
+    <aside class="sidebar">
+      <h2>MANHATTAN CMS</h2>
+      <nav>
+        <a href="#blocks" class="nav-link active">Blocks</a>
+        <a href="#settings" class="nav-link">Settings</a>
+      </nav>
+      <div class="preview-chip" id="save-hint">Auto-saved to localStorage</div>
+    </aside>
+    <main class="main">
+      <section class="panel" id="blocks">
+        <div style="display:flex; justify-content: space-between; align-items:center;">
+          <h3>Blocks</h3>
+          <button id="add-block">Add Block</button>
+        </div>
+        <div id="block-list"></div>
+      </section>
+
+      <section class="panel" id="settings">
+        <h3>Global Settings</h3>
+        <div class="grid-2">
+          <div>
+            <label>Site Title</label>
+            <input type="text" id="site-title" />
+          </div>
+          <div>
+            <label>Telegram Link</label>
+            <input type="url" id="telegram-link" placeholder="https://t.me/..." />
+          </div>
+          <div>
+            <label>Accent Color</label>
+            <input type="color" id="accent-color" />
+          </div>
+          <div>
+            <label>Background Color</label>
+            <input type="color" id="bg-color" />
+          </div>
+          <div>
+            <label>Font</label>
+            <select id="font-choice">
+              <option value="'Playfair Display', 'Inter', serif">Playfair + Inter</option>
+              <option value="'Inter', system-ui">Inter</option>
+              <option value="'Georgia', serif">Georgia</option>
+            </select>
+          </div>
+          <div>
+            <label>Favicon Upload</label>
+            <input type="file" id="favicon" accept="image/*" />
+            <small class="helper">Stored as Base64 locally.</small>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = 'manhattanVIP2024!';
+    let state = ManhattanData.load();
+
+    const loginBtn = document.getElementById('login-btn');
+    const passwordInput = document.getElementById('password');
+    const loginScreen = document.getElementById('login');
+    const dashboard = document.getElementById('dashboard');
+
+    loginBtn.addEventListener('click', () => {
+      if (passwordInput.value === ADMIN_PASSWORD) {
+        loginScreen.style.display = 'none';
+        dashboard.style.display = 'grid';
+        initForms();
+      } else {
+        alert('Incorrect password');
+      }
+    });
+
+    function syncSave() {
+      ManhattanData.save(state);
+      document.getElementById('save-hint').textContent = 'Saved locally';
+    }
+
+    function blockItemTemplate(block, index) {
+      const wrap = document.createElement('div');
+      wrap.className = 'block-item';
+      wrap.draggable = true;
+      wrap.dataset.index = index;
+      wrap.innerHTML = `
+        <div class="block-head">
+          <span class="drag-handle">⠿</span>
+          <strong>${block.title || 'Block'}</strong>
+          <div class="block-actions">
+            <button class="secondary" data-action="toggle">${block.hidden ? 'Show' : 'Hide'}</button>
+            <button class="secondary" data-action="delete">Delete</button>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>Title</label>
+            <input type="text" data-field="title" value="${block.title || ''}" />
+          </div>
+          <div>
+            <label>Text</label>
+            <textarea data-field="text" rows="2">${block.text || ''}</textarea>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Button Text</label>
+              <input type="text" data-field="buttonText" value="${block.buttonText || ''}" />
+            </div>
+            <div>
+              <label>Button Link</label>
+              <input type="url" data-field="buttonLink" value="${block.buttonLink || ''}" />
+            </div>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Background</label>
+              <input type="color" data-field="bgColor" value="${block.bgColor || '#ffffff'}" />
+            </div>
+            <div>
+              <label>Border</label>
+              <input type="color" data-field="borderColor" value="${block.borderColor || '#0050FF'}" />
+            </div>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Type</label>
+              <select data-field="type">
+                <option value="rect" ${block.type === 'rect' ? 'selected' : ''}>Rectangle</option>
+                <option value="square" ${block.type === 'square' ? 'selected' : ''}>Square</option>
+                <option value="pill" ${block.type === 'pill' ? 'selected' : ''}>Pill</option>
+                <option value="tall" ${block.type === 'tall' ? 'selected' : ''}>Tall</option>
+              </select>
+            </div>
+            <div>
+              <label>Columns (1-3)</label>
+              <input type="number" min="1" max="3" data-field="cols" value="${block.cols || 1}" />
+            </div>
+            <div>
+              <label>Rows (1-2)</label>
+              <input type="number" min="1" max="2" data-field="rows" value="${block.rows || 1}" />
+            </div>
+          </div>
+          <div>
+            <label>Upload Image</label>
+            <input type="file" data-field="imageUpload" accept="image/*" />
+            <small class="helper">Images are stored as Base64.</small>
+          </div>
+        </div>
+      `;
+      return wrap;
+    }
+
+    function bindBlockEvents(element, block, index) {
+      element.querySelectorAll('[data-field]').forEach((input) => {
+        if (input.type === 'file') {
+          input.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const dataUrl = await ManhattanData.fileToDataUrl(file);
+              block.image = dataUrl;
+              syncSave();
+            }
+          });
+        } else {
+          input.addEventListener('input', () => {
+            const field = input.dataset.field;
+            let value = input.value;
+            if (field === 'cols' || field === 'rows') value = Number(value);
+            block[field] = value;
+            element.querySelector('.block-head strong').textContent = block.title || 'Block';
+            syncSave();
+          });
+        }
+      });
+
+      element.querySelector('[data-action="delete"]').addEventListener('click', () => {
+        state.blocks.splice(index, 1);
+        renderBlocks();
+        syncSave();
+      });
+
+      element.querySelector('[data-action="toggle"]').addEventListener('click', (e) => {
+        block.hidden = !block.hidden;
+        e.target.textContent = block.hidden ? 'Show' : 'Hide';
+        syncSave();
+      });
+
+      element.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', index);
+      });
+      element.addEventListener('dragover', (e) => { e.preventDefault(); element.style.borderColor = 'var(--accent)'; });
+      element.addEventListener('dragleave', () => { element.style.borderColor = 'var(--border)'; });
+      element.addEventListener('drop', (e) => {
+        e.preventDefault();
+        element.style.borderColor = 'var(--border)';
+        const from = Number(e.dataTransfer.getData('text/plain'));
+        const to = index;
+        const moved = state.blocks.splice(from, 1)[0];
+        state.blocks.splice(to, 0, moved);
+        renderBlocks();
+        syncSave();
+      });
+    }
+
+    function renderBlocks() {
+      const list = document.getElementById('block-list');
+      list.innerHTML = '';
+      state.blocks.forEach((block, index) => {
+        const item = blockItemTemplate(block, index);
+        list.appendChild(item);
+        bindBlockEvents(item, block, index);
+      });
+    }
+
+    function addBlock() {
+      const id = `block-${Date.now()}`;
+      state.blocks.push({
+        id,
+        type: 'rect',
+        cols: 1,
+        rows: 1,
+        title: 'New Block',
+        text: '',
+        buttonText: '',
+        buttonLink: '#',
+        bgColor: '#ffffff',
+        borderColor: state.settings.accent || '#0050FF',
+        image: '',
+        hidden: false
+      });
+      renderBlocks();
+      syncSave();
+    }
+
+    document.getElementById('add-block').addEventListener('click', addBlock);
+
+    function bindSettings() {
+      const siteTitle = document.getElementById('site-title');
+      const telegramLink = document.getElementById('telegram-link');
+      const accentColor = document.getElementById('accent-color');
+      const bgColor = document.getElementById('bg-color');
+      const fontChoice = document.getElementById('font-choice');
+      const favicon = document.getElementById('favicon');
+
+      siteTitle.value = state.settings.title;
+      telegramLink.value = state.settings.telegram;
+      accentColor.value = state.settings.accent;
+      bgColor.value = state.settings.background;
+      fontChoice.value = state.settings.font;
+
+      siteTitle.addEventListener('input', () => { state.settings.title = siteTitle.value; syncSave(); });
+      telegramLink.addEventListener('input', () => { state.settings.telegram = telegramLink.value; syncSave(); });
+      accentColor.addEventListener('input', () => { state.settings.accent = accentColor.value; syncSave(); });
+      bgColor.addEventListener('input', () => { state.settings.background = bgColor.value; syncSave(); });
+      fontChoice.addEventListener('change', () => { state.settings.font = fontChoice.value; syncSave(); });
+      favicon.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const dataUrl = await ManhattanData.fileToDataUrl(file);
+          state.settings.favicon = dataUrl;
+          syncSave();
+        }
+      });
+    }
+
+    function initForms() {
+      renderBlocks();
+      bindSettings();
+      document.querySelectorAll('.nav-link').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-link').forEach((l) => l.classList.remove('active'));
+          e.target.classList.add('active');
+        });
+      });
+    }
+  </script>
+</body>
+</html>

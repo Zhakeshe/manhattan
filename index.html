@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANHATTAN</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script src="assets/data.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="header-pill" id="header-pill">
+        <h1 id="site-title">MANHATTAN</h1>
+        <a id="telegram-btn" class="telegram-btn" href="#" aria-label="Telegram">T</a>
+      </div>
+    </header>
+
+    <main class="layout" id="layout"></main>
+  </div>
+
+  <script>
+    const state = ManhattanData.load();
+    document.documentElement.style.setProperty('--accent', state.settings.accent || '#0050FF');
+    document.body.style.background = state.settings.background || '#f7f7f7';
+    document.body.style.fontFamily = state.settings.font || '"Inter", system-ui';
+
+    function renderHeader() {
+      document.title = state.settings.title;
+      document.getElementById('site-title').textContent = state.settings.title;
+      const tg = document.getElementById('telegram-btn');
+      tg.href = state.settings.telegram || '#';
+      tg.textContent = 'T';
+      if (state.settings.favicon) {
+        let link = document.querySelector('link[rel="icon"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = state.settings.favicon;
+      }
+    }
+
+    function makeBlock(block) {
+      const el = document.createElement('article');
+      el.className = `block ${block.type || ''}`;
+      if (block.cols === 2) el.classList.add('span-2');
+      if (block.cols === 3) el.classList.add('span-3');
+      if (block.rows === 2) el.classList.add('tall');
+      if (block.slot) el.style.gridArea = block.slot;
+      el.style.borderColor = block.borderColor || state.settings.accent;
+      el.style.background = block.bgColor || '#ffffff';
+
+      if (block.image) {
+        const img = document.createElement('img');
+        img.src = block.image;
+        img.alt = block.title || 'Block image';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '12px';
+        img.style.border = `2px solid ${block.borderColor || state.settings.accent}`;
+        el.appendChild(img);
+        return el;
+      }
+
+      if (block.type === 'square' && !block.title && !block.text && !block.buttonText) {
+        const frame = document.createElement('div');
+        frame.className = 'image-frame';
+        frame.style.borderColor = block.borderColor || state.settings.accent;
+        frame.textContent = 'Image';
+        el.appendChild(frame);
+        return el;
+      }
+
+      if (block.title) {
+        const h = document.createElement('h3');
+        h.className = 'title';
+        h.textContent = block.title;
+        el.appendChild(h);
+      }
+      if (block.text) {
+        const p = document.createElement('p');
+        p.className = 'body-text';
+        p.textContent = block.text;
+        el.appendChild(p);
+      }
+      if (block.buttonText) {
+        const btn = document.createElement('a');
+        btn.className = 'button';
+        btn.href = block.buttonLink || '#';
+        btn.textContent = block.buttonText;
+        el.appendChild(btn);
+      }
+      return el;
+    }
+
+    function renderBlocks() {
+      const layout = document.getElementById('layout');
+      layout.innerHTML = '';
+      state.blocks
+        .filter((b) => !b.hidden)
+        .forEach((block) => {
+          const el = makeBlock(block);
+          layout.appendChild(el);
+        });
+    }
+
+    renderHeader();
+    renderBlocks();
+  </script>
+</body>
+</html>
