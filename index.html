@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANHATTAN</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script src="assets/data.js"></script>
+  <style>
+    :root { --font-family: 'Manrope', system-ui; }
+  </style>
+</head>
+<body>
+  <div class="background-layer" id="bg-layer"></div>
+  <div class="background-overlay"></div>
+  <div class="darkness-layer"></div>
+  <div class="page">
+    <header class="header">
+      <div class="brand"></div>
+      <div class="brand">
+        <div class="brand-pill" id="title-pill">MANHATTAN</div>
+      </div>
+      <a id="telegram-btn" class="telegram" href="#" target="_blank">Telegram</a>
+    </header>
+
+    <section class="hero">
+      <h1 id="hero-title">Luxury VIP Maison</h1>
+      <p>Kazakh-inspired elegance meets Manhattan modernity.</p>
+    </section>
+
+    <section class="grid" id="grid"></section>
+
+    <footer class="footer">
+      Crafted for VIP evenings. Manage content via <a href="/admin" aria-label="Admin">Admin</a>.
+    </footer>
+  </div>
+
+  <script>
+    const data = ManhattanData.load();
+    const bgLayer = document.getElementById('bg-layer');
+    const grid = document.getElementById('grid');
+    const titlePill = document.getElementById('title-pill');
+    const telegramBtn = document.getElementById('telegram-btn');
+
+    function applySettings() {
+      document.title = data.settings.title;
+      titlePill.textContent = data.settings.title;
+      telegramBtn.href = data.settings.telegram || '#';
+      document.documentElement.style.setProperty('--font-family', data.settings.font || 'Manrope, system-ui');
+      if (data.settings.favicon) {
+        let link = document.querySelector('link[rel="icon"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = data.settings.favicon;
+      }
+    }
+
+    function applyBackground() {
+      const bg = data.background;
+      let backgroundValue = bg.color;
+      if (bg.type === 'gradient') backgroundValue = bg.gradient;
+      if (bg.type === 'image' && bg.image) backgroundValue = `url(${bg.image})`;
+      bgLayer.style.background = backgroundValue;
+      document.documentElement.style.setProperty('--bg-filter', `blur(${bg.blur || 0}px)`);
+      document.documentElement.style.setProperty('--bg-blur', `${bg.blur || 0}px`);
+      document.documentElement.style.setProperty('--bg-darkness', bg.darkness ?? 0.16);
+    }
+
+    function createCard(block) {
+      const card = document.createElement('article');
+      card.className = `card size-${block.size || 'medium'} ${block.hover ? 'with-hover' : ''}`;
+      card.style.background = block.color;
+      card.style.color = block.textColor;
+      card.style.textAlign = block.align || 'left';
+      card.style.borderRadius = `${block.borderRadius || 24}px`;
+      card.style.boxShadow = block.shadow || 'var(--shadow)';
+      card.style.setProperty('--rotation', `${block.rotation || 0}deg`);
+
+      const title = document.createElement('h3');
+      title.textContent = block.title || 'Untitled Block';
+      card.appendChild(title);
+
+      if (block.text) {
+        const p = document.createElement('p');
+        p.textContent = block.text;
+        card.appendChild(p);
+      }
+
+      if (block.image) {
+        const img = document.createElement('img');
+        img.src = block.image;
+        img.alt = block.title || 'block image';
+        card.appendChild(img);
+      }
+
+      if (block.buttonText) {
+        const btn = document.createElement('a');
+        btn.className = 'cta';
+        btn.href = block.buttonLink || '#';
+        btn.target = '_blank';
+        btn.rel = 'noopener';
+        btn.textContent = block.buttonText;
+        card.appendChild(btn);
+      }
+
+      return card;
+    }
+
+    function renderBlocks() {
+      grid.innerHTML = '';
+      data.blocks.filter(b => !b.hidden).forEach((block) => {
+        const card = createCard(block);
+        grid.appendChild(card);
+        requestAnimationFrame(() => card.classList.add('visible'));
+      });
+    }
+
+    function parallax() {
+      const offset = window.scrollY * 0.05;
+      bgLayer.style.transform = `translateY(${offset}px)`;
+    }
+    window.addEventListener('scroll', parallax);
+
+    function initFadeObserver() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+      }, { threshold: 0.15 });
+      document.querySelectorAll('.card').forEach((c) => observer.observe(c));
+    }
+
+    function init() {
+      applySettings();
+      applyBackground();
+      renderBlocks();
+      initFadeObserver();
+      if (!data.settings.animations) {
+        document.querySelectorAll('.card').forEach((c) => c.classList.remove('with-hover'));
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

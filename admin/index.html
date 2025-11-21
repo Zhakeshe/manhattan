@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANHATTAN Admin</title>
+  <link rel="stylesheet" href="../assets/admin.css" />
+  <script src="../assets/data.js"></script>
+</head>
+<body>
+  <div id="login" class="login">
+    <h2>Admin Access</h2>
+    <p>Enter the VIP code to manage MANHATTAN.</p>
+    <input type="password" id="password" placeholder="Password" aria-label="Password" />
+    <div style="margin-top:14px; display:flex; gap:10px;">
+      <button id="login-btn">Login</button>
+      <button class="secondary" onclick="window.location.href='/'">Back</button>
+    </div>
+  </div>
+
+  <div id="dashboard" class="dashboard" style="display:none;">
+    <aside class="sidebar">
+      <h2>MANHATTAN CMS</h2>
+      <nav>
+        <a href="#bg" class="nav-link">Background</a>
+        <a href="#blocks" class="nav-link">Blocks</a>
+        <a href="#settings" class="nav-link">Settings</a>
+      </nav>
+      <div class="preview-chip" id="save-hint">Auto-saved locally</div>
+    </aside>
+    <main class="main">
+      <section class="panel" id="bg">
+        <h3>Background Editor</h3>
+        <div class="grid-2">
+          <div>
+            <label>Type</label>
+            <select id="bg-type">
+              <option value="solid">Solid</option>
+              <option value="gradient">Gradient</option>
+              <option value="image">Image</option>
+            </select>
+          </div>
+          <div>
+            <label>Blur (0-16px)</label>
+            <input type="range" min="0" max="16" id="bg-blur" />
+          </div>
+          <div>
+            <label>Darkness Overlay</label>
+            <input type="range" min="0" max="0.6" step="0.02" id="bg-darkness" />
+          </div>
+          <div>
+            <label>Solid Color</label>
+            <input type="color" id="bg-color" />
+          </div>
+          <div>
+            <label>Gradient</label>
+            <input type="text" id="bg-gradient" placeholder="linear-gradient(...)" />
+          </div>
+          <div>
+            <label>Upload Image</label>
+            <input type="file" id="bg-image" accept="image/*" />
+            <small class="helper">Stored as Base64 in localStorage.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="blocks">
+        <div style="display:flex; justify-content: space-between; align-items:center;">
+          <h3>Block Manager</h3>
+          <button id="add-block">Add Block</button>
+        </div>
+        <div id="block-list"></div>
+      </section>
+
+      <section class="panel" id="settings">
+        <h3>Global Settings</h3>
+        <div class="grid-2">
+          <div>
+            <label>Site Title</label>
+            <input type="text" id="site-title" />
+          </div>
+          <div>
+            <label>Telegram Link</label>
+            <input type="url" id="telegram-link" placeholder="https://t.me/..." />
+          </div>
+          <div>
+            <label>Font Stack</label>
+            <select id="font-choice">
+              <option value="'Playfair Display', 'Manrope', system-ui">Playfair + Manrope</option>
+              <option value="'Manrope', system-ui">Manrope</option>
+              <option value="'Cormorant Garamond', 'Manrope', serif">Cormorant Garamond</option>
+              <option value="'Inter', system-ui">Inter</option>
+            </select>
+          </div>
+          <div>
+            <label>Animations</label>
+            <select id="animations">
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+          <div>
+            <label>Favicon Upload</label>
+            <input type="file" id="favicon" accept="image/*" />
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = 'manhattanVIP2024!';
+    let state = ManhattanData.load();
+
+    const loginBtn = document.getElementById('login-btn');
+    const passwordInput = document.getElementById('password');
+    const loginScreen = document.getElementById('login');
+    const dashboard = document.getElementById('dashboard');
+
+    loginBtn.addEventListener('click', () => {
+      if (passwordInput.value === ADMIN_PASSWORD) {
+        loginScreen.style.display = 'none';
+        dashboard.style.display = 'grid';
+        initForms();
+      } else {
+        alert('Incorrect password');
+      }
+    });
+
+    function syncSave() {
+      ManhattanData.save(state);
+      document.getElementById('save-hint').textContent = 'Saved to localStorage';
+    }
+
+    // Background controls
+    function bindBackground() {
+      const bgType = document.getElementById('bg-type');
+      const bgBlur = document.getElementById('bg-blur');
+      const bgDarkness = document.getElementById('bg-darkness');
+      const bgColor = document.getElementById('bg-color');
+      const bgGradient = document.getElementById('bg-gradient');
+      const bgImage = document.getElementById('bg-image');
+
+      bgType.value = state.background.type;
+      bgBlur.value = state.background.blur;
+      bgDarkness.value = state.background.darkness;
+      bgColor.value = state.background.color;
+      bgGradient.value = state.background.gradient;
+
+      bgType.addEventListener('change', () => { state.background.type = bgType.value; syncSave(); });
+      bgBlur.addEventListener('input', () => { state.background.blur = Number(bgBlur.value); syncSave(); });
+      bgDarkness.addEventListener('input', () => { state.background.darkness = Number(bgDarkness.value); syncSave(); });
+      bgColor.addEventListener('input', () => { state.background.color = bgColor.value; syncSave(); });
+      bgGradient.addEventListener('input', () => { state.background.gradient = bgGradient.value; syncSave(); });
+      bgImage.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const dataUrl = await ManhattanData.fileToDataUrl(file);
+          state.background.image = dataUrl;
+          state.background.type = 'image';
+          bgType.value = 'image';
+          syncSave();
+        }
+      });
+    }
+
+    // Settings controls
+    function bindSettings() {
+      const siteTitle = document.getElementById('site-title');
+      const telegramLink = document.getElementById('telegram-link');
+      const fontChoice = document.getElementById('font-choice');
+      const animations = document.getElementById('animations');
+      const favicon = document.getElementById('favicon');
+
+      siteTitle.value = state.settings.title;
+      telegramLink.value = state.settings.telegram;
+      fontChoice.value = state.settings.font;
+      animations.value = String(state.settings.animations);
+
+      siteTitle.addEventListener('input', () => { state.settings.title = siteTitle.value; syncSave(); });
+      telegramLink.addEventListener('input', () => { state.settings.telegram = telegramLink.value; syncSave(); });
+      fontChoice.addEventListener('change', () => { state.settings.font = fontChoice.value; syncSave(); });
+      animations.addEventListener('change', () => { state.settings.animations = animations.value === 'true'; syncSave(); });
+      favicon.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const dataUrl = await ManhattanData.fileToDataUrl(file);
+          state.settings.favicon = dataUrl;
+          syncSave();
+        }
+      });
+    }
+
+    function blockItemTemplate(block, index) {
+      const wrap = document.createElement('div');
+      wrap.className = 'block-item';
+      wrap.draggable = true;
+      wrap.dataset.index = index;
+
+      wrap.innerHTML = `
+        <div class="block-head">
+          <span class="drag-handle">⠿</span>
+          <strong>${block.title || 'Untitled'}</strong>
+          <div class="block-actions">
+            <button class="secondary" data-action="toggle">${block.hidden ? 'Show' : 'Hide'}</button>
+            <button class="secondary" data-action="delete">Delete</button>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>Title</label>
+            <input type="text" data-field="title" value="${block.title || ''}" />
+          </div>
+          <div>
+            <label>Text</label>
+            <textarea data-field="text" rows="2">${block.text || ''}</textarea>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Button Text</label>
+              <input type="text" data-field="buttonText" value="${block.buttonText || ''}" />
+            </div>
+            <div>
+              <label>Button Link</label>
+              <input type="url" data-field="buttonLink" value="${block.buttonLink || ''}" />
+            </div>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Color</label>
+              <input type="color" data-field="color" value="${block.color}" />
+            </div>
+            <div>
+              <label>Text Color</label>
+              <input type="color" data-field="textColor" value="${block.textColor}" />
+            </div>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Border Radius</label>
+              <input type="range" min="8" max="48" data-field="borderRadius" value="${block.borderRadius}" />
+            </div>
+            <div>
+              <label>Rotation</label>
+              <input type="range" min="-6" max="6" data-field="rotation" value="${block.rotation}" />
+            </div>
+          </div>
+          <div class="inline">
+            <div>
+              <label>Alignment</label>
+              <select data-field="align">
+                <option value="left" ${block.align === 'left' ? 'selected' : ''}>Left</option>
+                <option value="center" ${block.align === 'center' ? 'selected' : ''}>Center</option>
+                <option value="right" ${block.align === 'right' ? 'selected' : ''}>Right</option>
+              </select>
+            </div>
+            <div>
+              <label>Size</label>
+              <select data-field="size">
+                <option value="medium" ${block.size === 'medium' ? 'selected' : ''}>Medium</option>
+                <option value="wide" ${block.size === 'wide' ? 'selected' : ''}>Wide</option>
+                <option value="tall" ${block.size === 'tall' ? 'selected' : ''}>Tall</option>
+                <option value="square" ${block.size === 'square' ? 'selected' : ''}>Square</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label>Shadow</label>
+            <input type="text" data-field="shadow" value="${block.shadow}" />
+          </div>
+          <div>
+            <label>Upload Image</label>
+            <input type="file" data-field="imageUpload" accept="image/*" />
+            <small class="helper">PNG/JPG stored in Base64.</small>
+          </div>
+          <div>
+            <label>Hover Animations</label>
+            <select data-field="hover">
+              <option value="true" ${block.hover ? 'selected' : ''}>Enabled</option>
+              <option value="false" ${!block.hover ? 'selected' : ''}>Disabled</option>
+            </select>
+          </div>
+        </div>
+      `;
+      return wrap;
+    }
+
+    function bindBlockEvents(element, block, index) {
+      element.querySelectorAll('[data-field]').forEach((input) => {
+        if (input.type === 'file') {
+          input.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const dataUrl = await ManhattanData.fileToDataUrl(file);
+              block.image = dataUrl;
+              syncSave();
+            }
+          });
+        } else {
+          input.addEventListener('input', () => {
+            const field = input.dataset.field;
+            let value = input.type === 'range' ? Number(input.value) : input.value;
+            if (input.tagName === 'SELECT' && (field === 'hover')) {
+              value = input.value === 'true';
+            }
+            block[field] = value;
+            element.querySelector('.block-head strong').textContent = block.title || 'Untitled';
+            syncSave();
+          });
+        }
+      });
+
+      element.querySelector('[data-action="delete"]').addEventListener('click', () => {
+        state.blocks.splice(index, 1);
+        renderBlocks();
+        syncSave();
+      });
+
+      element.querySelector('[data-action="toggle"]').addEventListener('click', (e) => {
+        block.hidden = !block.hidden;
+        e.target.textContent = block.hidden ? 'Show' : 'Hide';
+        syncSave();
+      });
+
+      element.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', index);
+      });
+
+      element.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        element.style.borderColor = '#d5b26f';
+      });
+
+      element.addEventListener('dragleave', () => {
+        element.style.borderColor = 'var(--border)';
+      });
+
+      element.addEventListener('drop', (e) => {
+        e.preventDefault();
+        element.style.borderColor = 'var(--border)';
+        const fromIndex = Number(e.dataTransfer.getData('text/plain'));
+        const toIndex = index;
+        const moved = state.blocks.splice(fromIndex, 1)[0];
+        state.blocks.splice(toIndex, 0, moved);
+        renderBlocks();
+        syncSave();
+      });
+    }
+
+    function renderBlocks() {
+      const list = document.getElementById('block-list');
+      list.innerHTML = '';
+      state.blocks.forEach((block, index) => {
+        const item = blockItemTemplate(block, index);
+        list.appendChild(item);
+        bindBlockEvents(item, block, index);
+      });
+    }
+
+    function addBlock() {
+      const id = `block-${Date.now()}`;
+      state.blocks.push({
+        id,
+        title: 'New VIP Block',
+        text: 'Describe the experience...',
+        image: null,
+        buttonText: 'Learn More',
+        buttonLink: '#',
+        color: '#fff6e8',
+        textColor: '#5a3b20',
+        align: 'center',
+        borderRadius: 24,
+        shadow: '0 14px 28px rgba(160, 112, 45, 0.28)',
+        rotation: Number((Math.random() * 6 - 3).toFixed(1)),
+        hidden: false,
+        hover: true,
+        size: 'medium'
+      });
+      renderBlocks();
+      syncSave();
+    }
+
+    document.getElementById('add-block').addEventListener('click', addBlock);
+
+    function initForms() {
+      bindBackground();
+      bindSettings();
+      renderBlocks();
+      document.querySelectorAll('.nav-link').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-link').forEach((l) => l.classList.remove('active'));
+          e.target.classList.add('active');
+        });
+      });
+    }
+  </script>
+</body>
+</html>
