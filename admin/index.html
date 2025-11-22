@@ -140,6 +140,10 @@ document.getElementById("add-block").onclick = addBlock;
 function bindSettings() {
   const st = state.settings;
 
+  // 🟩 МІНДЕТТІ 2 ЖОЛ (fix)
+  const siteTitle = document.getElementById("site-title");
+  const telegramLink = document.getElementById("telegram-link");
+
   siteTitle.value = st.title || "";
   telegramLink.value = st.telegram || "";
 
@@ -152,6 +156,7 @@ function initForms() {
   bindSettings();
 }
 </script>
+
 
 </body>
 </html>
