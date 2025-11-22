@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "admin/index.html", "use": "@vercel/static" },
+    { "src": "assets/**", "use": "@vercel/static" },
+    { "src": "data.json", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/server.js" },
+    { "src": "/admin", "dest": "/admin/index.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "env": {
+    "ADMIN_PASSWORD": "MY_PASSWORD"
+  }
+}

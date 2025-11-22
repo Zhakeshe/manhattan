@@ -5,7 +5,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'MY_PASSWORD';
 
 app.use(cors());
@@ -61,6 +61,12 @@ app.use(express.static(path.join(__dirname)));
 
 ensureDataFile();
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Export the app for serverless platforms (e.g., Vercel) while still allowing
+// local development with `node server.js`.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

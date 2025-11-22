@@ -3,6 +3,15 @@ Build a luxury VIP Kazakh-style site called “MANHATTAN”, with a fully dynami
 All content must be stored LOCALLY using localStorage (no backend, no database).
 Design: premium, rounded, modern, warm beige & gold tones.
 
+## Vercel deployment
+
+1. Install dependencies locally: `npm install`.
+2. Set environment variables in Vercel project settings:
+   - `ADMIN_PASSWORD` — password for `POST /api/save` (defaults to `MY_PASSWORD`).
+   - `DATA_FILE` — optional absolute path for the JSON store (set to `/tmp/data.json` on Vercel).
+3. Deploy with `vercel --prod` (the included `vercel.json` routes `/api/*` to the Express handler in `server.js` and serves static assets from the repo).
+4. Note: filesystem writes in serverless environments are ephemeral; data saved to `DATA_FILE` will not persist across deployments. Use a persistent store if you need long-term data retention.
+
 
 ---
 
