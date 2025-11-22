@@ -64,9 +64,9 @@ ensureDataFile();
 // Export the app for serverless platforms (e.g., Vercel) while still allowing
 // local development with `node server.js`.
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+});
 }
 
 module.exports = app;
