@@ -264,3 +264,20 @@ Blocks keep rounded look
 🔥 FINAL GOAL
 
 A VIP Manhattan menu-site with a built-in mini CMS running entirely on localStorage, no backend required.
+
+## Backend server
+
+A lightweight Express server is included to persist MANHATTAN data to `data.json`.
+
+### Setup & run
+1. Install dependencies:
+   - `npm install`
+2. Start the server:
+   - `npm start`
+3. The site and admin panel are served statically from the repository root (http://localhost:3000/).
+
+### API
+- `GET /api/data` – returns the JSON contents of `data.json` (auto-created with `{ "blocks": [], "settings": {} }` if missing).
+- `POST /api/save` – overwrite `data.json` with the JSON payload (supports Base64 strings). Requires header `x-admin-pass: MY_PASSWORD` (or set `ADMIN_PASSWORD` env var to change).
+
+Successful saves return `{ "success": true }`. When `data.json` is missing or invalid, it is regenerated with the default structure.
