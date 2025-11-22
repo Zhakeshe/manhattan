@@ -1,4 +1,3 @@
-const ADMIN_PASSWORD = "manhattanVIP2024!";
 
 const ManhattanData = {
   async load() {
