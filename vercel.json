@@ -1,18 +1,23 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "admin/index.html", "use": "@vercel/static" },
-    { "src": "assets/**", "use": "@vercel/static" },
+    { "src": "server.js", "use": "@vercel/node" },
+    { "src": "assets/**/*", "use": "@vercel/static" },
     { "src": "data.json", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" },
     { "src": "/admin", "dest": "/admin/index.html" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "env": {
-    "ADMIN_PASSWORD": "MY_PASSWORD"
-  }
+
+    { "src": "/api/(.*)", "dest": "/server.js" },
+
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/data.json", "dest": "/data.json" },
+    { "src": "/styles.css", "dest": "/styles.css" },
+    { "src": "/script.js", "dest": "/script.js" },
+
+    { "src": "/", "dest": "/index.html" }
+  ]
 }
+
